@@ -24,14 +24,18 @@
 
     process.EventEmitter = EventEmitter; // process.EventEmitter is deprecated
 
+    var isRenderer = process.argv[2] == '--type=renderer';
+
     startup.setupProcessObject();
 
     // do this good and early, since it handles errors.
     startup.processFatal();
 
     startup.globalVariables();
+    if (!isRenderer) {  // No indent to minimize diff.
     startup.globalTimeouts();
     startup.globalConsole();
+    }  // not isRenderer
 
     startup.processAssert();
     startup.processConfig();
@@ -39,6 +43,7 @@
     startup.processPromises();
     startup.processStdio();
     startup.processKillAndExit();
+    if (!isRenderer) {  // No indent to minimize diff.
     startup.processSignalHandlers();
 
     // Do not initialize channel in debugger agent, it deletes env variable
@@ -47,6 +52,7 @@
       startup.processChannel();
 
     startup.processRawDebug();
+    }  // not isRenderer
 
     process.argv[0] = process.execPath;
 
