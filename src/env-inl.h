@@ -209,7 +209,9 @@ inline Environment::Environment(v8::Local<v8::Context> context,
       trace_sync_io_(false),
       makecallback_cntr_(0),
       async_wrap_uid_(0),
+#if 0
       debugger_agent_(this),
+#endif
       http_parser_buffer_(nullptr),
       context_(context->GetIsolate(), context) {
   // We'll be creating new objects so make sure we've entered the context.
