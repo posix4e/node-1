@@ -37,6 +37,11 @@
         return EventEmitter;
       }
     });
+    Object.defineProperty(process, 'NativeModule', {
+      get() {
+        return NativeModule;
+      }
+    });
 
     var isRenderer = process.argv[2] == '--type=renderer';
 
