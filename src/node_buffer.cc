@@ -112,18 +112,23 @@ class CallbackInfo {
   static inline CallbackInfo* New(Isolate* isolate,
                                   Local<ArrayBuffer> object,
                                   FreeCallback callback,
+                                  char* data,
                                   void* hint = 0);
  private:
-  static void WeakCallback(const WeakCallbackInfo<CallbackInfo>&);
-  inline void WeakCallback(Isolate* isolate, char* const data);
+  static void FirstWeakCallback(const v8::WeakCallbackInfo<CallbackInfo>& data);
+  static void SecondWeakCallback(
+      const v8::WeakCallbackInfo<CallbackInfo>& data);
   inline CallbackInfo(Isolate* isolate,
                       Local<ArrayBuffer> object,
                       FreeCallback callback,
+                      char* data,
                       void* hint);
   ~CallbackInfo();
   Persistent<ArrayBuffer> persistent_;
   FreeCallback const callback_;
+  char* const data_;
   void* const hint_;
+  Isolate* isolate_;
   DISALLOW_COPY_AND_ASSIGN(CallbackInfo);
 };
 
@@ -136,27 +141,28 @@ void CallbackInfo::Free(char* data, void*) {
 CallbackInfo* CallbackInfo::New(Isolate* isolate,
                                 Local<ArrayBuffer> object,
                                 FreeCallback callback,
+                                char* data,
                                 void* hint) {
-  return new CallbackInfo(isolate, object, callback, hint);
+  return new CallbackInfo(isolate, object, callback, data, hint);
 }
-
 
 CallbackInfo::CallbackInfo(Isolate* isolate,
                            Local<ArrayBuffer> object,
                            FreeCallback callback,
+                           char* data,
                            void* hint)
     : persistent_(isolate, object),
       callback_(callback),
-      hint_(hint) {
-  ArrayBuffer::Contents obj_c = object->GetContents();
-  char* const data = static_cast<char*>(obj_c.Data());
+      data_(data),
+      hint_(hint),
+      isolate_(isolate) {
   if (object->ByteLength() != 0)
     CHECK_NE(data, nullptr);
 
   object->SetAlignedPointerInInternalField(kBufferInternalFieldIndex, data);
 
-  persistent_.SetWeak(this, WeakCallback,
-                      v8::WeakCallbackType::kInternalFields);
+  persistent_.SetWeak(
+      this, FirstWeakCallback, v8::WeakCallbackType::kParameter);
   persistent_.SetWrapperClassId(BUFFER_ID);
   persistent_.MarkIndependent();
   isolate->AdjustAmountOfExternalAllocatedMemory(sizeof(*this));
@@ -165,23 +171,22 @@ CallbackInfo::CallbackInfo(Isolate* isolate,
 
 CallbackInfo::~CallbackInfo() {
   persistent_.Reset();
-}
-
-
-void CallbackInfo::WeakCallback(
-    const WeakCallbackInfo<CallbackInfo>& data) {
-  CallbackInfo* self = data.GetParameter();
-  self->WeakCallback(
-      data.GetIsolate(),
-      static_cast<char*>(data.GetInternalField(kBufferInternalFieldIndex)));
-  delete self;
-}
-
-
-void CallbackInfo::WeakCallback(Isolate* isolate, char* const data) {
-  callback_(data, hint_);
+  callback_(data_, hint_);
   int64_t change_in_bytes = -static_cast<int64_t>(sizeof(*this));
-  isolate->AdjustAmountOfExternalAllocatedMemory(change_in_bytes);
+  isolate_->AdjustAmountOfExternalAllocatedMemory(change_in_bytes);
+}
+
+
+void CallbackInfo::FirstWeakCallback(
+    const v8::WeakCallbackInfo<CallbackInfo>& data) {
+  data.GetParameter()->persistent_.Reset();
+  data.SetSecondPassCallback(SecondWeakCallback);
+}
+
+
+void CallbackInfo::SecondWeakCallback(
+    const v8::WeakCallbackInfo<CallbackInfo>& data) {
+  delete data.GetParameter();
 }
 
 
@@ -419,7 +424,7 @@ MaybeLocal<Object> New(Environment* env,
   if (!mb.FromMaybe(false))
     return Local<Object>();
 
-  CallbackInfo::New(env->isolate(), ab, callback, hint);
+  CallbackInfo::New(env->isolate(), ab, callback, data, hint);
   return scope.Escape(ui);
 }
 
@@ -441,7 +446,7 @@ MaybeLocal<Object> New(Isolate* isolate, char* data, size_t length) {
   Local<Uint8Array> ui = g_uint8_array_new(ab, 0, length);
   Maybe<bool> mb =
       ui->SetPrototype(env->context(), env->buffer_prototype_object());
-  CallbackInfo::New(env->isolate(), ab, CallbackInfo::Free, nullptr);
+  CallbackInfo::New(env->isolate(), ab, CallbackInfo::Free, data, nullptr);
   if (mb.FromMaybe(false))
     return handle_scope.Escape(ui);
   return Local<Object>();
