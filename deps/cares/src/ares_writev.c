@@ -54,7 +54,7 @@ ssize_t ares_writev(ares_socket_t s, const struct iovec *iov, int iovcnt)
     return (0);
 
   /* Allocate a temporary buffer to hold the data */
-  buffer = ares_malloc(bytes);
+  buffer = malloc(bytes);
   if (!buffer)
   {
     SET_ERRNO(ENOMEM);
@@ -71,7 +71,7 @@ ssize_t ares_writev(ares_socket_t s, const struct iovec *iov, int iovcnt)
   /* Send buffer contents */
   result = swrite(s, buffer, bytes);
 
-  ares_free(buffer);
+  free(buffer);
 
   return (result);
 }

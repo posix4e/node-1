@@ -43,13 +43,6 @@
 #define INADDR_NONE 0xffffffff
 #endif
 
-#ifdef CARES_EXPOSE_STATICS
-/* Make some internal functions visible for testing */
-#define STATIC_TESTABLE
-#else
-#define STATIC_TESTABLE static
-#endif
-
 #if defined(WIN32) && !defined(WATT32)
 
 #define WIN_NS_9X      "System\\CurrentControlSet\\Services\\VxD\\MSTCP"
@@ -93,7 +86,10 @@
 #  define getenv(ptr) ares_getenv(ptr)
 #endif
 
-#include "ares_strdup.h"
+#ifndef HAVE_STRDUP
+#  include "ares_strdup.h"
+#  define strdup(ptr) ares_strdup(ptr)
+#endif
 
 #ifndef HAVE_STRCASECMP
 #  include "ares_strcasecmp.h"
@@ -123,8 +119,6 @@ struct ares_addr {
     struct in_addr       addr4;
     struct ares_in6_addr addr6;
   } addr;
-  int udp_port;  /* stored in network order */
-  int tcp_port;  /* stored in network order */
 };
 #define addrV4 addr.addr4
 #define addrV6 addr.addr6
@@ -257,8 +251,8 @@ struct ares_channeldata {
   int tries;
   int ndots;
   int rotate; /* if true, all servers specified are used */
-  int udp_port; /* stored in network order */
-  int tcp_port; /* stored in network order */
+  int udp_port;
+  int tcp_port;
   int socket_send_buffer_size;
   int socket_receive_buffer_size;
   char **domains;
@@ -313,15 +307,12 @@ struct ares_channeldata {
   void *sock_create_cb_data;
 };
 
-/* Memory management functions */
-extern void *(*ares_malloc)(size_t size);
-extern void *(*ares_realloc)(void *ptr, size_t size);
-extern void (*ares_free)(void *ptr);
-
 /* return true if now is exactly check time or later */
 int ares__timedout(struct timeval *now,
                    struct timeval *check);
 
+/* returns ARES_SUCCESS if library has been initialized */
+int ares_library_initialized(void);
 void ares__send_query(ares_channel channel, struct query *query,
                       struct timeval *now);
 void ares__close_sockets(ares_channel channel, struct server_state *server);

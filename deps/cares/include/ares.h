@@ -19,8 +19,6 @@
 #define ARES__H
 
 #include "ares_version.h"  /* c-ares version defines   */
-#include "ares_build.h"    /* c-ares build definitions */
-#include "ares_rules.h"    /* c-ares rules enforcement */
 
 /*
  * Define WIN32 when build target is Win32 API
@@ -30,6 +28,9 @@
    !defined(WIN32) && !defined(__SYMBIAN32__)
 #  define WIN32
 #endif
+
+/* Data type definition of ares_socklen_t. */
+typedef unsigned ares_socklen_t;
 
 #include <sys/types.h>
 
@@ -296,13 +297,6 @@ typedef int  (*ares_sock_create_callback)(ares_socket_t socket_fd,
 
 CARES_EXTERN int ares_library_init(int flags);
 
-CARES_EXTERN int ares_library_init_mem(int flags,
-                                       void *(*amalloc)(size_t size),
-                                       void (*afree)(void *ptr),
-                                       void *(*arealloc)(void *ptr, size_t size));
-
-CARES_EXTERN int ares_library_initialized(void);
-
 CARES_EXTERN void ares_library_cleanup(void);
 
 CARES_EXTERN const char *ares_version(int *version);
@@ -343,9 +337,6 @@ CARES_EXTERN void ares_set_local_dev(ares_channel channel,
 CARES_EXTERN void ares_set_socket_callback(ares_channel channel,
                                            ares_sock_create_callback callback,
                                            void *user_data);
-
-CARES_EXTERN int ares_set_sortlist(ares_channel channel,
-                                   const char *sortstr);
 
 CARES_EXTERN void ares_send(ares_channel channel,
                             const unsigned char *qbuf,
@@ -482,17 +473,8 @@ struct ares_txt_reply {
   struct ares_txt_reply  *next;
   unsigned char          *txt;
   size_t                  length;  /* length excludes null termination */
-};
-
-/* NOTE: This structure is a superset of ares_txt_reply
- */
-struct ares_txt_ext {
-  struct ares_txt_ext      *next;
-  unsigned char            *txt;
-  size_t                   length;
-  /* 1 - if start of new record
-   * 0 - if a chunk in the same record */
-  unsigned char            record_start;
+  unsigned char           record_start;  /* 1 - if start of new record
+                                          * 0 - if a chunk in the same record */
 };
 
 struct ares_naptr_reply {
@@ -558,10 +540,6 @@ CARES_EXTERN int ares_parse_txt_reply(const unsigned char* abuf,
                                       int alen,
                                       struct ares_txt_reply** txt_out);
 
-CARES_EXTERN int ares_parse_txt_reply_ext(const unsigned char* abuf,
-                                          int alen,
-                                          struct ares_txt_ext** txt_out);
-
 CARES_EXTERN int ares_parse_naptr_reply(const unsigned char* abuf,
                                         int alen,
                                         struct ares_naptr_reply** naptr_out);
@@ -578,6 +556,7 @@ CARES_EXTERN void ares_free_data(void *dataptr);
 
 CARES_EXTERN const char *ares_strerror(int code);
 
+/* TODO:  Hold port here as well. */
 struct ares_addr_node {
   struct ares_addr_node *next;
   int family;
@@ -587,32 +566,15 @@ struct ares_addr_node {
   } addr;
 };
 
-struct ares_addr_port_node {
-  struct ares_addr_port_node *next;
-  int family;
-  union {
-    struct in_addr       addr4;
-    struct ares_in6_addr addr6;
-  } addr;
-  int udp_port;
-  int tcp_port;
-};
-
 CARES_EXTERN int ares_set_servers(ares_channel channel,
                                   struct ares_addr_node *servers);
-CARES_EXTERN int ares_set_servers_ports(ares_channel channel,
-                                        struct ares_addr_port_node *servers);
 
 /* Incomming string format: host[:port][,host[:port]]... */
 CARES_EXTERN int ares_set_servers_csv(ares_channel channel,
                                       const char* servers);
-CARES_EXTERN int ares_set_servers_ports_csv(ares_channel channel,
-                                            const char* servers);
 
 CARES_EXTERN int ares_get_servers(ares_channel channel,
                                   struct ares_addr_node **servers);
-CARES_EXTERN int ares_get_servers_ports(ares_channel channel,
-                                        struct ares_addr_port_node **servers);
 
 CARES_EXTERN const char *ares_inet_ntop(int af, const void *src, char *dst,
                                         ares_socklen_t size);
