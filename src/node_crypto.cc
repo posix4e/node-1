@@ -5768,6 +5768,7 @@ void TimingSafeEqual(const FunctionCallbackInfo<Value>& args) {
 
 void InitCryptoOnce() {
   SSL_load_error_strings();
+#ifndef BORING_SSL
   OPENSSL_no_config();
 
   // --openssl-config=...
@@ -5789,7 +5790,7 @@ void InitCryptoOnce() {
       CHECK_NE(err, 0);
     }
   }
-
+#endif
   SSL_library_init();
   OpenSSL_add_all_algorithms();
 
