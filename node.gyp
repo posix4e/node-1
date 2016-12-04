@@ -260,11 +260,9 @@
         [ 'node_enable_d8=="true"', {
           'dependencies': [ 'deps/v8/src/d8.gyp:d8' ],
         }],
-        [ 'node_use_boringssl=="true"', {
-          'defines': [ 'BORING_SSL' ],
+        [ 'node_use_chromium_v8=="true"', {
           'dependencies': [
             '../../../v8/src/v8.gyp:v8',
-            '../../../third_party/boringssl/boringssl.gyp:boringssl',
           ],
         }],
         [ 'node_use_bundled_v8=="true"', {
