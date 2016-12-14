@@ -5556,7 +5556,7 @@ static void array_push_back(const TypeName* md,
 void GetCiphers(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   CipherPushContext ctx(env);
-  // EVP_CIPHER_do_all_sorted(array_push_back<EVP_CIPHER>, &ctx);
+  EVP_CIPHER_do_all_sorted(array_push_back<EVP_CIPHER>, &ctx);
   args.GetReturnValue().Set(ctx.arr);
 }
 
@@ -5564,7 +5564,7 @@ void GetCiphers(const FunctionCallbackInfo<Value>& args) {
 void GetHashes(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   CipherPushContext ctx(env);
-  // EVP_MD_do_all_sorted(array_push_back<EVP_MD>, &ctx);
+  EVP_MD_do_all_sorted(array_push_back<EVP_MD>, &ctx);
   args.GetReturnValue().Set(ctx.arr);
 }
 
@@ -5768,7 +5768,6 @@ void TimingSafeEqual(const FunctionCallbackInfo<Value>& args) {
 
 void InitCryptoOnce() {
   SSL_load_error_strings();
-#ifndef BORING_SSL
   OPENSSL_no_config();
 
   // --openssl-config=...
@@ -5790,7 +5789,6 @@ void InitCryptoOnce() {
       CHECK_NE(err, 0);
     }
   }
-#endif
   SSL_library_init();
   OpenSSL_add_all_algorithms();
 
